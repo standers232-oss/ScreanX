@@ -1,0 +1,32 @@
+<Window x:Class="ScreanX.Views.RulerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Screen Ruler" 
+        WindowStyle="None" 
+        AllowsTransparency="True" 
+        Background="#20000000"
+        Topmost="True" 
+        ShowInTaskbar="False"
+        KeyDown="Window_KeyDown"
+        MouseDown="Window_MouseDown"
+        MouseMove="Window_MouseMove"
+        MouseUp="Window_MouseUp">
+
+    <Canvas x:Name="RulerCanvas">
+        <!-- Measurement Rect -->
+        <Border x:Name="MeasureBorder" BorderBrush="{DynamicResource M3.PrimaryBrush}" BorderThickness="2" 
+                Background="#20FFFFFF" Visibility="Collapsed">
+            <Line x:Name="DiagonalLine" Stroke="{DynamicResource M3.PrimaryBrush}" StrokeThickness="1" StrokeDashArray="4 2"/>
+        </Border>
+
+        <!-- Measurement Info Badge -->
+        <Border x:Name="InfoBadge" Background="{DynamicResource M3.SurfaceContainerHighestBrush}" 
+                CornerRadius="16" Padding="12,8" Effect="{StaticResource M3.Elevation3}" Visibility="Collapsed">
+            <StackPanel>
+                <TextBlock x:Name="DimensionsText" Foreground="{DynamicResource M3.OnSurfaceBrush}" FontSize="14" FontWeight="Bold" Text="0 × 0 px"/>
+                <TextBlock x:Name="DiagonalText" Foreground="{DynamicResource M3.PrimaryBrush}" FontSize="12" Margin="0,2,0,0" Text="Диагональ: 0 px"/>
+                <TextBlock Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" FontSize="10" Margin="0,4,0,0" Text="Клик: скопировать | Esc: закрыть"/>
+            </StackPanel>
+        </Border>
+    </Canvas>
+</Window>

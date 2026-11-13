@@ -1,0 +1,845 @@
+<Window x:Class="ScreanX.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:services="clr-namespace:ScreanX.Services"
+        Title="ScreanX - Material 3 Screen Capture" 
+        Height="710" Width="1020" 
+        MinHeight="580" MinWidth="820"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        Background="{DynamicResource M3.SurfaceBrush}"
+        Foreground="{DynamicResource M3.OnSurfaceBrush}"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="52" 
+                      CornerRadius="16" 
+                      GlassFrameThickness="0" 
+                      ResizeBorderThickness="6" 
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="52"/> <!-- Custom M3 Titlebar -->
+            <RowDefinition Height="*"/>  <!-- Main Content Area -->
+        </Grid.RowDefinitions>
+
+        <!-- 1. Custom Material 3 Title Bar -->
+        <Border Grid.Row="0" Background="{DynamicResource M3.SurfaceContainerBrush}" 
+                BorderBrush="{DynamicResource M3.OutlineVariantBrush}" BorderThickness="0,0,0,1"
+                MouseDown="TitleBar_MouseDown">
+            <Grid Margin="16,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/> <!-- Logo & Name -->
+                    <ColumnDefinition Width="*"/>    <!-- Spacer & Theme controls -->
+                    <ColumnDefinition Width="Auto"/> <!-- Window controls -->
+                </Grid.ColumnDefinitions>
+
+                <!-- App Logo & Title (highlighted M3 badge removed) -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="34" Height="34" CornerRadius="10" Background="{DynamicResource M3.PrimaryContainerBrush}" Margin="0,0,12,0">
+                        <Path Data="{StaticResource IconCamera}" Fill="{DynamicResource M3.OnPrimaryContainerBrush}" Width="18" Height="18" Stretch="Uniform"/>
+                    </Border>
+                    <TextBlock Text="ScreanX" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource M3.OnSurfaceBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Center/Right theme quick switcher -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <!-- Color dots -->
+                    <Button Width="20" Height="20" Margin="3,0" Background="#6750A4" BorderThickness="0" Cursor="Hand" ToolTip="Фиолетовый (Purple)" Click="Palette_Click" Tag="Purple">
+                        <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="10"/></ControlTemplate></Button.Template>
+                    </Button>
+                    <Button Width="20" Height="20" Margin="3,0" Background="#006A6A" BorderThickness="0" Cursor="Hand" ToolTip="Морской (Teal)" Click="Palette_Click" Tag="Teal">
+                        <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="10"/></ControlTemplate></Button.Template>
+                    </Button>
+                    <Button Width="20" Height="20" Margin="3,0" Background="#00639B" BorderThickness="0" Cursor="Hand" ToolTip="Синий (Blue)" Click="Palette_Click" Tag="Blue">
+                        <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="10"/></ControlTemplate></Button.Template>
+                    </Button>
+                    <Button Width="20" Height="20" Margin="3,0" Background="#9C4329" BorderThickness="0" Cursor="Hand" ToolTip="Терракотовый (Orange)" Click="Palette_Click" Tag="Orange">
+                        <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="10"/></ControlTemplate></Button.Template>
+                    </Button>
+
+                    <!-- Dark / Light mode toggle -->
+                    <Button Style="{StaticResource M3.IconButton}" Width="36" Height="36" Margin="8,0,0,0" ToolTip="Сменить тему (Светлая / Тёмная)" Click="ThemeToggle_Click">
+                        <Path x:Name="ThemeIconPath" Data="{StaticResource IconSun}" Fill="{DynamicResource M3.OnSurfaceBrush}" Width="16" Height="16" Stretch="Uniform"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Window Min / Max / Close -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource M3.IconButton}" Width="38" Height="34" ToolTip="Свернуть" Click="Minimize_Click">
+                        <Path Data="{StaticResource IconMinimize}" Fill="{DynamicResource M3.OnSurfaceBrush}" Width="12" Height="12" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource M3.IconButton}" Width="38" Height="34" ToolTip="Развернуть" Click="Maximize_Click">
+                        <Path Data="{StaticResource IconMaximize}" Fill="{DynamicResource M3.OnSurfaceBrush}" Width="12" Height="12" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource M3.IconButton}" Width="38" Height="34" ToolTip="Закрыть" Click="Close_Click">
+                        <Path Data="{StaticResource IconClose}" Fill="{DynamicResource M3.OnSurfaceBrush}" Width="12" Height="12" Stretch="Uniform"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. Main Content Grid (Nav Rail + Content Area) -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="80"/> <!-- M3 Navigation Rail -->
+                <ColumnDefinition Width="*"/>  <!-- Tabs Content -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Navigation Rail -->
+            <Border Grid.Column="0" Background="{DynamicResource M3.SurfaceContainerLowBrush}" 
+                    BorderBrush="{DynamicResource M3.OutlineVariantBrush}" BorderThickness="0,0,1,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Top FAB / Quick Capture in Nav Rail -->
+                    <Button Grid.Row="0" Style="{StaticResource M3.FAB}" Margin="0,16,0,16" HorizontalAlignment="Center" 
+                            ToolTip="Быстрый снимок области (PrtScn)" Click="CaptureRegion_Click">
+                        <Path Data="{StaticResource IconCrop}" Fill="{DynamicResource M3.OnPrimaryContainerBrush}" Width="24" Height="24" Stretch="Uniform"/>
+                    </Button>
+
+                    <!-- Nav Items -->
+                    <StackPanel Grid.Row="1" HorizontalAlignment="Center">
+                        <RadioButton x:Name="NavCapture" Style="{StaticResource M3.NavRailItem}" Tag="Снимок" IsChecked="True" Checked="Nav_Checked">
+                            <Path Data="{StaticResource IconCamera}" Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}" Width="20" Height="20" Stretch="Uniform"/>
+                        </RadioButton>
+
+                        <RadioButton x:Name="NavHistory" Style="{StaticResource M3.NavRailItem}" Tag="История" Margin="0,8,0,0" Checked="Nav_Checked">
+                            <Path Data="{StaticResource IconHistory}" Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}" Width="20" Height="20" Stretch="Uniform"/>
+                        </RadioButton>
+
+                        <RadioButton x:Name="NavTools" Style="{StaticResource M3.NavRailItem}" Tag="Утилиты" Margin="0,8,0,0" Checked="Nav_Checked">
+                            <Path Data="{StaticResource IconTools}" Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}" Width="20" Height="20" Stretch="Uniform"/>
+                        </RadioButton>
+
+                        <RadioButton x:Name="NavSettings" Style="{StaticResource M3.NavRailItem}" Tag="Настройки" Margin="0,8,0,0" Checked="Nav_Checked">
+                            <Path Data="{StaticResource IconSettings}" Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}" Width="20" Height="20" Stretch="Uniform"/>
+                        </RadioButton>
+
+                        <RadioButton x:Name="NavAbout" Style="{StaticResource M3.NavRailItem}" Tag="Инфо" Margin="0,8,0,0" Checked="Nav_Checked">
+                            <Path Data="{StaticResource IconInfo}" Fill="{Binding RelativeSource={RelativeSource AncestorType=RadioButton}, Path=Foreground}" Width="20" Height="20" Stretch="Uniform"/>
+                        </RadioButton>
+                    </StackPanel>
+
+                    <!-- Bottom Hotkey Indicator -->
+                    <Border Grid.Row="2" Background="{DynamicResource M3.SurfaceContainerHighestBrush}" CornerRadius="10" Margin="10,0,10,14" Padding="4,6">
+                        <TextBlock Text="PrtScn" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource M3.PrimaryBrush}" HorizontalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Content Area (Tabs with Entrance Animations) -->
+            <Grid Grid.Column="1" Margin="28,24">
+
+                <!-- TAB 1: CAPTURE -->
+                <ScrollViewer x:Name="TabCapture" VerticalScrollBarVisibility="Auto" services:SmoothScrollHelper.SmoothScroll="True">
+                    <ScrollViewer.RenderTransform>
+                        <TransformGroup>
+                            <TranslateTransform x:Name="TabCaptureTransform" Y="0"/>
+                            <ScaleTransform x:Name="TabCaptureScale" ScaleX="1" ScaleY="1"/>
+                        </TransformGroup>
+                    </ScrollViewer.RenderTransform>
+                    <StackPanel>
+                        
+                        <!-- Hero Section: Capture Region -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Background="{DynamicResource M3.PrimaryContainerBrush}" Margin="0,0,0,20">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="Захват области экрана" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource M3.OnPrimaryContainerBrush}"/>
+                                    <TextBlock Text="Выделите прямоугольную область, нарисуйте стрелки, текст, размойте конфиденциальные данные и скопируйте в буфер." 
+                                               FontSize="13" Foreground="{DynamicResource M3.OnPrimaryContainerBrush}" Opacity="0.85" TextWrapping="Wrap" Margin="0,6,20,0"/>
+                                    
+                                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                        <Button Style="{StaticResource M3.FilledButton}" Click="CaptureRegion_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource IconCrop}" Fill="{DynamicResource M3.OnPrimaryBrush}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Сделать снимок (PrtScn)"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Border Background="{DynamicResource M3.SecondaryContainerBrush}" CornerRadius="20" Padding="14,0" Height="40" Margin="12,0,0,0">
+                                            <TextBlock Text="Hotkey: PrintScreen / Ctrl+Shift+S" FontSize="12" FontWeight="SemiBold" 
+                                                       Foreground="{DynamicResource M3.OnSecondaryContainerBrush}" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Border Grid.Column="1" Width="100" Height="100" CornerRadius="50" Background="{DynamicResource M3.SurfaceContainerBrush}" Opacity="0.3">
+                                    <Path Data="{StaticResource IconCrop}" Fill="{DynamicResource M3.PrimaryBrush}" Width="48" Height="48" Stretch="Uniform"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Quick Capture Modes (4 modes now including Video Recording!) -->
+                        <TextBlock Text="Режимы снимка и записи" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+                        
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Fullscreen Card -->
+                            <Border Grid.Column="0" Style="{StaticResource M3.ElevatedCard}" Margin="0,0,8,0">
+                                <StackPanel>
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource M3.SecondaryContainerBrush}" HorizontalAlignment="Left">
+                                        <Path Data="{StaticResource IconScreen}" Fill="{DynamicResource M3.OnSecondaryContainerBrush}" Width="22" Height="22" Stretch="Uniform"/>
+                                    </Border>
+                                    <TextBlock Text="Весь экран" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                                    <TextBlock Text="Снимок всех мониторов" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" TextWrapping="Wrap"/>
+                                    <Button Style="{StaticResource M3.TonalButton}" Height="34" Margin="0,14,0,0" HorizontalAlignment="Left" Click="CaptureFullscreen_Click">
+                                        <TextBlock Text="Захватить" FontSize="12"/>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Active Window Card -->
+                            <Border Grid.Column="1" Style="{StaticResource M3.ElevatedCard}" Margin="4,0,4,0">
+                                <StackPanel>
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource M3.SecondaryContainerBrush}" HorizontalAlignment="Left">
+                                        <Path Data="{StaticResource IconWindow}" Fill="{DynamicResource M3.OnSecondaryContainerBrush}" Width="22" Height="22" Stretch="Uniform"/>
+                                    </Border>
+                                    <TextBlock Text="Активное окно" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                                    <TextBlock Text="Окно переднего плана" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" TextWrapping="Wrap"/>
+                                    <Button Style="{StaticResource M3.TonalButton}" Height="34" Margin="0,14,0,0" HorizontalAlignment="Left" Click="CaptureActiveWindow_Click">
+                                        <TextBlock Text="Захватить" FontSize="12"/>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Timer Card -->
+                            <Border Grid.Column="2" Style="{StaticResource M3.ElevatedCard}" Margin="4,0,4,0">
+                                <StackPanel>
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource M3.SecondaryContainerBrush}" HorizontalAlignment="Left">
+                                        <Path Data="{StaticResource IconTimer}" Fill="{DynamicResource M3.OnSecondaryContainerBrush}" Width="22" Height="22" Stretch="Uniform"/>
+                                    </Border>
+                                    <TextBlock Text="С таймером 3с" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                                    <TextBlock Text="Для контекстных меню" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" TextWrapping="Wrap"/>
+                                    <Button Style="{StaticResource M3.TonalButton}" Height="34" Margin="0,14,0,0" HorizontalAlignment="Left" Click="CaptureTimer_Click">
+                                        <TextBlock Text="Старт (3с)" FontSize="12"/>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Video Recording Card -->
+                            <Border Grid.Column="3" Style="{StaticResource M3.ElevatedCard}" Margin="8,0,0,0">
+                                <StackPanel>
+                                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource M3.PrimaryContainerBrush}" HorizontalAlignment="Left">
+                                        <Path Data="{StaticResource IconVideo}" Fill="{DynamicResource M3.OnPrimaryContainerBrush}" Width="22" Height="22" Stretch="Uniform"/>
+                                    </Border>
+                                    <TextBlock Text="Запись видео" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                                    <TextBlock Text="Запись экрана (Ctrl+Shift+R)" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" TextWrapping="Wrap"/>
+                                    <Button Style="{StaticResource M3.FilledButton}" Height="34" Margin="0,14,0,0" HorizontalAlignment="Left" Click="CaptureVideo_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="8" Height="8" Fill="#FF4444" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Запись" FontSize="12"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Workflow Toggles -->
+                        <TextBlock Text="Действия после снимка" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+                        <Border Style="{StaticResource M3.Card}">
+                            <StackPanel>
+                                <Grid Margin="0,6">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Копировать в буфер обмена" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Изображение автоматически попадает в буфер (готов к вставке в Telegram, Discord, Word)" FontSize="12" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ToggleAutoCopy" Style="{StaticResource M3.Switch}" HorizontalAlignment="Right" Click="SettingToggle_Click"/>
+                                </Grid>
+
+                                <Separator Background="{DynamicResource M3.OutlineVariantBrush}" Margin="0,10"/>
+
+                                <Grid Margin="0,6">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Сохранять в папку автоматически" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Автоматическое сохранение в Изображения\ScreanX" FontSize="12" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ToggleAutoSave" Style="{StaticResource M3.Switch}" HorizontalAlignment="Right" Click="SettingToggle_Click"/>
+                                </Grid>
+
+                                <Separator Background="{DynamicResource M3.OutlineVariantBrush}" Margin="0,10"/>
+
+                                <Grid Margin="0,6">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Звуковой сигнал затвора" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Воспроизводить приятный щелчок камеры при успешном захвате" FontSize="12" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ToggleSound" Style="{StaticResource M3.Switch}" HorizontalAlignment="Right" Click="SettingToggle_Click"/>
+                                </Grid>
+
+                                <Separator Background="{DynamicResource M3.OutlineVariantBrush}" Margin="0,10"/>
+
+                                <Grid Margin="0,6">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Авто-улучшение качества маленьких областей (2x HD)" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Супер-сэмплинг 2x и повышение чёткости текста для небольших снимков (до 500 px)" FontSize="12" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ToggleAutoEnhance" Style="{StaticResource M3.Switch}" HorizontalAlignment="Right" Click="SettingToggle_Click"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- TAB 2: HISTORY -->
+                <Grid x:Name="TabHistory" Visibility="Collapsed">
+                    <Grid.RenderTransform>
+                        <TransformGroup>
+                            <TranslateTransform x:Name="TabHistoryTransform" Y="0"/>
+                            <ScaleTransform x:Name="TabHistoryScale" ScaleX="1" ScaleY="1"/>
+                        </TransformGroup>
+                    </Grid.RenderTransform>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- History Header Actions -->
+                    <Grid Grid.Row="0" Margin="0,0,0,16">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Галерея и история снимков" FontSize="20" FontWeight="Bold"/>
+                            <TextBlock x:Name="HistoryCountText" Text="Всего снимков: 0" FontSize="12" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource M3.OutlinedButton}" Click="OpenSaveFolder_Click" Margin="0,0,10,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource IconFolder}" Fill="{DynamicResource M3.PrimaryBrush}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Открыть папку"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource M3.OutlinedButton}" Click="ClearHistory_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource IconTrash}" Fill="{DynamicResource M3.PrimaryBrush}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Очистить историю"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Empty State Illustration -->
+                    <Border Grid.Row="1" x:Name="HistoryEmptyState" Style="{StaticResource M3.Card}" 
+                            HorizontalAlignment="Center" VerticalAlignment="Center" 
+                            Padding="40,32" Visibility="Collapsed">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Border Width="68" Height="68" CornerRadius="34" Background="{DynamicResource M3.PrimaryContainerBrush}" HorizontalAlignment="Center" Margin="0,0,0,16">
+                                <Path Data="{StaticResource IconCamera}" Fill="{DynamicResource M3.OnPrimaryContainerBrush}" Width="32" Height="32" Stretch="Uniform"/>
+                            </Border>
+                            <TextBlock Text="История снимков пока пуста" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Сделайте первый скриншот нажатием горячей клавиши PrtScn или кнопкой ниже." 
+                                       FontSize="13" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" HorizontalAlignment="Center" Margin="0,8,0,20"/>
+                            <Button Style="{StaticResource M3.FilledButton}" Content="Сделать первый снимок" HorizontalAlignment="Center" Click="CaptureRegion_Click"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- History Items List -->
+                    <ScrollViewer Grid.Row="1" x:Name="HistoryScrollViewer" VerticalScrollBarVisibility="Auto" services:SmoothScrollHelper.SmoothScroll="True">
+                        <ItemsControl x:Name="HistoryItemsList">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource M3.ElevatedCard}" Width="260" Margin="0,0,16,16">
+                                        <StackPanel>
+                                            <!-- Thumbnail -->
+                                            <Border Height="140" CornerRadius="8" Background="{DynamicResource M3.SurfaceContainerHighestBrush}" ClipToBounds="True">
+                                                <Image Source="{Binding FilePath}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            </Border>
+
+                                            <!-- Metadata -->
+                                            <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" Margin="0,8,0,2"/>
+                                            <TextBlock Text="{Binding FormattedTime}" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                            <TextBlock Text="{Binding Dimensions}" FontSize="11" Foreground="{DynamicResource M3.PrimaryBrush}" FontWeight="Medium"/>
+
+                                            <!-- Card Action Buttons -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                <Button Style="{StaticResource M3.IconButton}" ToolTip="Копировать в буфер" Click="HistoryItemCopy_Click" Tag="{Binding}">
+                                                    <Path Data="{StaticResource IconCopy}" Fill="{DynamicResource M3.OnSurfaceBrush}" Width="14" Height="14" Stretch="Uniform"/>
+                                                </Button>
+                                                <Button Style="{StaticResource M3.IconButton}" ToolTip="Закрепить на экране" Click="HistoryItemPin_Click" Tag="{Binding}">
+                                                    <Path Data="{StaticResource IconPin}" Fill="{DynamicResource M3.OnSurfaceBrush}" Width="14" Height="14" Stretch="Uniform"/>
+                                                </Button>
+                                                <Button Style="{StaticResource M3.IconButton}" ToolTip="Открыть файл" Click="HistoryItemOpen_Click" Tag="{Binding}">
+                                                    <Path Data="{StaticResource IconFolder}" Fill="{DynamicResource M3.OnSurfaceBrush}" Width="14" Height="14" Stretch="Uniform"/>
+                                                </Button>
+                                                <Button Style="{StaticResource M3.IconButton}" ToolTip="Удалить" Click="HistoryItemDelete_Click" Tag="{Binding}">
+                                                    <Path Data="{StaticResource IconTrash}" Fill="{DynamicResource M3.OnSurfaceBrush}" Width="14" Height="14" Stretch="Uniform"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- TAB 3: TOOLS -->
+                <ScrollViewer x:Name="TabTools" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" services:SmoothScrollHelper.SmoothScroll="True">
+                    <ScrollViewer.RenderTransform>
+                        <TransformGroup>
+                            <TranslateTransform x:Name="TabToolsTransform" Y="0"/>
+                            <ScaleTransform x:Name="TabToolsScale" ScaleX="1" ScaleY="1"/>
+                        </TransformGroup>
+                    </ScrollViewer.RenderTransform>
+                    <StackPanel>
+                        <TextBlock Text="Дополнительные инструменты" FontSize="20" FontWeight="Bold" Margin="0,0,0,16"/>
+
+                        <!-- Tool 0: Screen Video Recorder -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Width="48" Height="48" CornerRadius="14" Background="{DynamicResource M3.PrimaryContainerBrush}" Margin="0,0,16,0">
+                                    <Path Data="{StaticResource IconVideo}" Fill="{DynamicResource M3.OnPrimaryContainerBrush}" Width="24" Height="24" Stretch="Uniform"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Запись видео экрана" FontSize="16" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Записывайте видео выделенной области или всего экрана с плавающей панелью управления (Ctrl+Shift+R)." 
+                                               FontSize="12" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <Button Grid.Column="2" Style="{StaticResource M3.FilledButton}" VerticalAlignment="Center" Click="CaptureVideo_Click">
+                                    <TextBlock Text="Начать запись"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Tool 1: Color Picker -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Width="48" Height="48" CornerRadius="14" Background="{DynamicResource M3.SecondaryContainerBrush}" Margin="0,0,16,0">
+                                    <Path Data="{StaticResource IconPipette}" Fill="{DynamicResource M3.OnSecondaryContainerBrush}" Width="24" Height="24" Stretch="Uniform"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Пипетка цвета экрана" FontSize="16" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Определите точный цвет любого пикселя на мониторе и скопируйте код в формате HEX или RGB в буфер." 
+                                               FontSize="12" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <Button Grid.Column="2" Style="{StaticResource M3.TonalButton}" VerticalAlignment="Center" Click="ToolColorPicker_Click">
+                                    <TextBlock Text="Запустить"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Tool 2: Screen Ruler -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Width="48" Height="48" CornerRadius="14" Background="{DynamicResource M3.SecondaryContainerBrush}" Margin="0,0,16,0">
+                                    <Path Data="{StaticResource IconRuler}" Fill="{DynamicResource M3.OnSecondaryContainerBrush}" Width="24" Height="24" Stretch="Uniform"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Экранная линейка" FontSize="16" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Измеряйте расстояние, ширину, высоту и диагональ элементов интерфейса в пикселях прямо на экране." 
+                                               FontSize="12" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <Button Grid.Column="2" Style="{StaticResource M3.TonalButton}" VerticalAlignment="Center" Click="ToolRuler_Click">
+                                    <TextBlock Text="Запустить"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Tool 3: Image Pinner from Clipboard / File -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Width="48" Height="48" CornerRadius="14" Background="{DynamicResource M3.SecondaryContainerBrush}" Margin="0,0,16,0">
+                                    <Path Data="{StaticResource IconPin}" Fill="{DynamicResource M3.OnSecondaryContainerBrush}" Width="24" Height="24" Stretch="Uniform"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Закрепить изображение поверх всех окон" FontSize="16" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Закрепляет картинку из буфера обмена на экране. Поддерживает прозрачность колесиком мыши." 
+                                               FontSize="12" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <Button Grid.Column="2" Style="{StaticResource M3.TonalButton}" VerticalAlignment="Center" Click="ToolPinClipboard_Click">
+                                    <TextBlock Text="Закрепить из буфера"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- TAB 4: SETTINGS (Бинды и параметры) -->
+                <ScrollViewer x:Name="TabSettings" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" services:SmoothScrollHelper.SmoothScroll="True">
+                    <ScrollViewer.RenderTransform>
+                        <TransformGroup>
+                            <TranslateTransform x:Name="TabSettingsTransform" Y="0"/>
+                            <ScaleTransform x:Name="TabSettingsScale" ScaleX="1" ScaleY="1"/>
+                        </TransformGroup>
+                    </ScrollViewer.RenderTransform>
+                    <StackPanel>
+                        <TextBlock Text="Настройки программы" FontSize="20" FontWeight="Bold" Margin="0,0,0,16"/>
+
+                        <!-- Visual Appearance Card -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="Тема оформления Material 3" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+                                <Grid Margin="0,0,0,12">
+                                    <TextBlock Text="Тема интерфейса" VerticalAlignment="Center"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <RadioButton x:Name="ThemeDarkRadio" Content="Тёмная" Margin="0,0,16,0" GroupName="ThemeMode" Checked="ThemeRadio_Checked"/>
+                                        <RadioButton x:Name="ThemeLightRadio" Content="Светлая" GroupName="ThemeMode" Checked="ThemeRadio_Checked"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid>
+                                    <TextBlock Text="Цветовая палитра" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="PaletteCombo" Width="170" HorizontalAlignment="Right" SelectionChanged="PaletteCombo_SelectionChanged">
+                                        <ComboBoxItem Content="Purple (Iris)"/>
+                                        <ComboBoxItem Content="Teal (Морской)"/>
+                                        <ComboBoxItem Content="Blue (Синий)"/>
+                                        <ComboBoxItem Content="Orange (Терракот)"/>
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Hotkeys / Binds Card -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,12">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Глобальные горячие клавиши (Бинды)" FontSize="16" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Работают из любого открытого приложения или игры" FontSize="12" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <Button Style="{StaticResource M3.OutlinedButton}" Height="32" Content="Сбросить бинды" HorizontalAlignment="Right" Click="ResetHotkeys_Click"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="Снимок области экрана" VerticalAlignment="Center"/>
+                                    <Border Background="{DynamicResource M3.SurfaceContainerHighestBrush}" CornerRadius="6" Padding="10,4" HorizontalAlignment="Right">
+                                        <TextBlock Text="PrintScreen / Ctrl+Shift+S" FontWeight="SemiBold" Foreground="{DynamicResource M3.PrimaryBrush}"/>
+                                    </Border>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="Снимок всего экрана" VerticalAlignment="Center"/>
+                                    <Border Background="{DynamicResource M3.SurfaceContainerHighestBrush}" CornerRadius="6" Padding="10,4" HorizontalAlignment="Right">
+                                        <TextBlock Text="Shift+PrintScreen" FontWeight="SemiBold" Foreground="{DynamicResource M3.PrimaryBrush}"/>
+                                    </Border>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="Снимок активного окна" VerticalAlignment="Center"/>
+                                    <Border Background="{DynamicResource M3.SurfaceContainerHighestBrush}" CornerRadius="6" Padding="10,4" HorizontalAlignment="Right">
+                                        <TextBlock Text="Alt+PrintScreen" FontWeight="SemiBold" Foreground="{DynamicResource M3.PrimaryBrush}"/>
+                                    </Border>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="Запись видео экрана" VerticalAlignment="Center"/>
+                                    <Border Background="{DynamicResource M3.SurfaceContainerHighestBrush}" CornerRadius="6" Padding="10,4" HorizontalAlignment="Right">
+                                        <TextBlock Text="Ctrl+Shift+R" FontWeight="SemiBold" Foreground="#FF4444"/>
+                                    </Border>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="Пипетка цвета экрана" VerticalAlignment="Center"/>
+                                    <Border Background="{DynamicResource M3.SurfaceContainerHighestBrush}" CornerRadius="6" Padding="10,4" HorizontalAlignment="Right">
+                                        <TextBlock Text="Ctrl+Shift+C" FontWeight="SemiBold" Foreground="{DynamicResource M3.PrimaryBrush}"/>
+                                    </Border>
+                                </Grid>
+
+                                <Grid>
+                                    <TextBlock Text="Экранная линейка" VerticalAlignment="Center"/>
+                                    <Border Background="{DynamicResource M3.SurfaceContainerHighestBrush}" CornerRadius="6" Padding="10,4" HorizontalAlignment="Right">
+                                        <TextBlock Text="Ctrl+Shift+M" FontWeight="SemiBold" Foreground="{DynamicResource M3.PrimaryBrush}"/>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Saving Folder & Format Card -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="Папка сохранения и формат" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+                                <TextBlock Text="Путь для сохранения снимков и видео:" FontSize="13" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" Margin="0,0,0,8"/>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="SavePathBox" Grid.Column="0" Style="{StaticResource M3.TextBox}" IsReadOnly="True"/>
+                                    <Button Grid.Column="1" Style="{StaticResource M3.TonalButton}" Margin="10,0,0,0" Content="Обзор..." Click="BrowseFolder_Click"/>
+                                </Grid>
+
+                                <Grid>
+                                    <TextBlock Text="Формат файлов скриншотов" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="FormatCombo" Width="120" HorizontalAlignment="Right" SelectionChanged="FormatCombo_SelectionChanged">
+                                        <ComboBoxItem Content="PNG"/>
+                                        <ComboBoxItem Content="JPEG"/>
+                                        <ComboBoxItem Content="BMP"/>
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Video Recording Settings Card -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                    <Border Width="28" Height="28" CornerRadius="8" Background="#FF4444" Margin="0,0,10,0" VerticalAlignment="Center">
+                                        <Path Data="{StaticResource IconVideo}" Fill="White" Width="14" Height="14" Stretch="Uniform"/>
+                                    </Border>
+                                    <TextBlock Text="Настройки записи видео экрана" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Video Format Combo -->
+                                <Grid Margin="0,0,0,12">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Формат видеозаписи" FontWeight="SemiBold"/>
+                                        <TextBlock Text="MP4 для универсальности, AVI для качества, GIF для чатов" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="VideoFormatCombo" Width="190" HorizontalAlignment="Right" SelectionChanged="VideoFormatCombo_SelectionChanged">
+                                        <ComboBoxItem Content="MP4 (MPEG-4 / H.264)"/>
+                                        <ComboBoxItem Content="AVI (Motion-JPEG HD)"/>
+                                        <ComboBoxItem Content="GIF (Анимация)"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <!-- Frame Rate (FPS) Combo -->
+                                <Grid Margin="0,0,0,12">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Частота кадров (FPS)" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Количество кадров в секунду при захвате видео" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="VideoFpsCombo" Width="190" HorizontalAlignment="Right" SelectionChanged="VideoFpsCombo_SelectionChanged">
+                                        <ComboBoxItem Content="15 FPS (Экономичный)"/>
+                                        <ComboBoxItem Content="24 FPS (Кино)"/>
+                                        <ComboBoxItem Content="30 FPS (Рекомендуется)"/>
+                                        <ComboBoxItem Content="60 FPS (Максимальный)"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <!-- Mouse Cursor Toggle -->
+                                <Grid Margin="0,0,0,12">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Записывать курсор мыши" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Отображать реальный указатель мыши с плавным перемещением в видео" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ToggleRecordCursor" Style="{StaticResource M3.Switch}" HorizontalAlignment="Right" Click="SettingToggle_Click"/>
+                                </Grid>
+
+                                <!-- Exclude Overlay Controls From Capture Toggle -->
+                                <Grid>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Скрывать панель управления из видео" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Окно завершения и рамка видны вам, но автоматически не записываются в видео" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ToggleExcludeControls" Style="{StaticResource M3.Switch}" HorizontalAlignment="Right" Click="SettingToggle_Click"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Behavior & Startup Card -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="Поведение программы и автозапуск" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,14"/>
+
+                                <!-- Minimize to Tray -->
+                                <Grid Margin="0,0,0,12">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Сворачивать в системный трей вместо закрытия" FontWeight="SemiBold"/>
+                                        <TextBlock Text="При закрытии окна программа продолжает работать в фоне и слушать бинды" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ToggleMinimizeTray" Style="{StaticResource M3.Switch}" HorizontalAlignment="Right" Click="SettingToggle_Click"/>
+                                </Grid>
+
+                                <!-- Start with Windows -->
+                                <Grid Margin="0,0,0,12">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Запускать вместе с Windows" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Автоматически загружать ScreanX при включении компьютера" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ToggleStartWithWindows" Style="{StaticResource M3.Switch}" HorizontalAlignment="Right" Click="SettingToggle_Click"/>
+                                </Grid>
+
+                                <!-- Start in Tray -->
+                                <Grid>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Открывать в свёрнутом виде в трее" FontWeight="SemiBold"/>
+                                        <TextBlock Text="При автозапуске окно не появляется на экране, программа тихо ждёт в трее" FontSize="11" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ToggleStartInTray" Style="{StaticResource M3.Switch}" HorizontalAlignment="Right" Click="SettingToggle_Click"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- TAB 5: ABOUT (О программе, Создатель, Telegram) -->
+                <ScrollViewer x:Name="TabAbout" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" services:SmoothScrollHelper.SmoothScroll="True">
+                    <ScrollViewer.RenderTransform>
+                        <TransformGroup>
+                            <TranslateTransform x:Name="TabAboutTransform" Y="0"/>
+                            <ScaleTransform x:Name="TabAboutScale" ScaleX="1" ScaleY="1"/>
+                        </TransformGroup>
+                    </ScrollViewer.RenderTransform>
+                    <StackPanel Margin="0,0,0,24">
+                        
+                        <!-- Hero Card -->
+                        <Border Style="{StaticResource M3.ElevatedCard}" Background="{DynamicResource M3.PrimaryContainerBrush}" Margin="0,0,0,20">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <Border Width="38" Height="38" CornerRadius="12" Background="{DynamicResource M3.PrimaryBrush}" Margin="0,0,12,0">
+                                            <Path Data="{StaticResource IconCamera}" Fill="{DynamicResource M3.OnPrimaryBrush}" Width="20" Height="20" Stretch="Uniform"/>
+                                        </Border>
+                                        <TextBlock Text="ScreanX" FontSize="26" FontWeight="Bold" Foreground="{DynamicResource M3.OnPrimaryContainerBrush}" VerticalAlignment="Center"/>
+                                        <Border Background="{DynamicResource M3.SurfaceContainerBrush}" CornerRadius="12" Padding="8,4" Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="v1.2 Material 3" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource M3.PrimaryBrush}"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="Современный, быстрый и функциональный инструмент для создания скриншотов, аннотаций и записи видео с экрана Windows в стиле Google Material Design 3." 
+                                               FontSize="13" Foreground="{DynamicResource M3.OnPrimaryContainerBrush}" Opacity="0.9" TextWrapping="Wrap" Margin="0,4,16,0"/>
+                                </StackPanel>
+                                <Border Grid.Column="1" Width="80" Height="80" CornerRadius="40" Background="{DynamicResource M3.SurfaceContainerBrush}" Opacity="0.35">
+                                    <Path Data="{StaticResource IconInfo}" Fill="{DynamicResource M3.PrimaryBrush}" Width="40" Height="40" Stretch="Uniform"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Links Grid (Creator & Telegram) -->
+                        <TextBlock Text="Создатель и сообщество" FontSize="18" FontWeight="Bold" Margin="0,0,0,14"/>
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Creator GitHub Card -->
+                            <Border Grid.Column="0" Style="{StaticResource M3.ElevatedCard}" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <Border Width="48" Height="48" CornerRadius="14" Background="{DynamicResource M3.SecondaryContainerBrush}" HorizontalAlignment="Left">
+                                        <Path Data="{StaticResource IconGitHub}" Fill="{DynamicResource M3.OnSecondaryContainerBrush}" Width="26" Height="26" Stretch="Uniform"/>
+                                    </Border>
+                                    <TextBlock Text="Создатель проекта" FontSize="16" FontWeight="Bold" Margin="0,14,0,4"/>
+                                    <TextBlock Text="standers232-oss" FontSize="14" Foreground="{DynamicResource M3.PrimaryBrush}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Разработка, исходный код и новые релизы на GitHub." FontSize="12" 
+                                               Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" TextWrapping="Wrap" Margin="0,4,0,16"/>
+                                    <Button Style="{StaticResource M3.FilledButton}" HorizontalAlignment="Left" Click="OpenGitHub_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource IconGitHub}" Fill="{DynamicResource M3.OnPrimaryBrush}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0"/>
+                                            <TextBlock Text="Профиль на GitHub"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Telegram Channel Card -->
+                            <Border Grid.Column="1" Style="{StaticResource M3.ElevatedCard}" Margin="10,0,0,0">
+                                <StackPanel>
+                                    <Border Width="48" Height="48" CornerRadius="14" Background="#0088CC" HorizontalAlignment="Left">
+                                        <Path Data="{StaticResource IconTelegram}" Fill="White" Width="26" Height="26" Stretch="Uniform"/>
+                                    </Border>
+                                    <TextBlock Text="Telegram-канал" FontSize="16" FontWeight="Bold" Margin="0,14,0,4"/>
+                                    <TextBlock Text="@CreatingX" FontSize="14" Foreground="#0088CC" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Официальный Telegram-канал: новости, обновления, общение и идеи." FontSize="12" 
+                                               Foreground="{DynamicResource M3.OnSurfaceVariantBrush}" TextWrapping="Wrap" Margin="0,4,0,16"/>
+                                    <Button Style="{StaticResource M3.FilledButton}" Background="#0088CC" Foreground="White" HorizontalAlignment="Left" Click="OpenTelegram_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource IconTelegram}" Fill="White" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0"/>
+                                            <TextBlock Text="Перейти в канал"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Technical Specs Card -->
+                        <TextBlock Text="Особенности и технологии" FontSize="18" FontWeight="Bold" Margin="0,0,0,14"/>
+                        <Border Style="{StaticResource M3.Card}">
+                            <StackPanel>
+                                <Grid Margin="0,6">
+                                    <TextBlock Text="Архитектура и среда" FontWeight="SemiBold"/>
+                                    <TextBlock Text=".NET 8 • Windows Presentation Foundation (WPF)" HorizontalAlignment="Right" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                </Grid>
+                                <Separator Background="{DynamicResource M3.OutlineVariantBrush}" Margin="0,6"/>
+                                <Grid Margin="0,6">
+                                    <TextBlock Text="Дизайн-система" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Google Material Design 3 (Material You Tonal Surfaces)" HorizontalAlignment="Right" Foreground="{DynamicResource M3.PrimaryBrush}"/>
+                                </Grid>
+                                <Separator Background="{DynamicResource M3.OutlineVariantBrush}" Margin="0,6"/>
+                                <Grid Margin="0,6">
+                                    <TextBlock Text="Движок захвата" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Direct GDI+ &amp; Windows DWM API (PerMonitorV2 High-DPI)" HorizontalAlignment="Right" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                </Grid>
+                                <Separator Background="{DynamicResource M3.OutlineVariantBrush}" Margin="0,6"/>
+                                <Grid Margin="0,6">
+                                    <TextBlock Text="Запись видео" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Встроенный рекордер экрана (Motion-JPEG AVI)" HorizontalAlignment="Right" Foreground="{DynamicResource M3.OnSurfaceVariantBrush}"/>
+                                </Grid>
+                                <Separator Background="{DynamicResource M3.OutlineVariantBrush}" Margin="0,6"/>
+                                <Grid Margin="0,6">
+                                    <TextBlock Text="Качество маленьких областей" FontWeight="SemiBold"/>
+                                    <TextBlock Text="2x Super-Resolution &amp; Unsharp Masking" HorizontalAlignment="Right" Foreground="{DynamicResource M3.PrimaryBrush}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
